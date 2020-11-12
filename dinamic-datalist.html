@@ -17,9 +17,30 @@
 </div>
 
 <script>
-	var server = "https://yourdomain.com";
+	var server = "https://yourdomainserver.com";
 	let optionsReadOnly = [];
 	let options = [];
+	let timeOut;
+
+	jq('#keyword').focus(() => {
+		jq('#keyword').val('');
+	})
+
+	jq('#keyword').keyup(ev => {
+		clearTimeout(timeOut)
+		timeOut = setTimeout(() => {
+			if (ev.target.value) {
+				jq('#opt-spinner').show();
+				searchOptions(ev.target.value).then(result => {
+					jq('#opt-spinner').hide();
+					mountOptions(result);
+				}).catch(err => {
+					jq('#opt-spinner').hide();
+					toastMessage('warning', err);
+				});
+			}
+		}, 500);
+	});
 
 	jq('#keyword').on('change blur', (e) => {
 		const index = optionsReadOnly.findIndex(el => {
@@ -42,18 +63,23 @@
 		}
 	});
 
-	jq('#keyword').focus(() => {
-		jq('#keyword').val('');
-	})
+	function mountOptions (options) {
+		let html = '';
+		if (Array.isArray(options)) {
+			options.forEach(element => {
+				html += `<option>${element.label}</option>`;
+			});
+		}
+		jq('#network-el').html(html);
+	}
 
 	function deleteOption(value) {
 		const index = options.findIndex(el => {
 			return value === el.label
 		});
-		console.log(index)
 		if (index > -1) {
 			options.splice(index, 1);
-			updateOptions(options)
+			updateOptions(options);
 		}
 	}
 
@@ -65,26 +91,6 @@
 		});
 		jq('#selectedOptions').html(html);
 	}
-
-	jq('#keyword').keyup(ev => {
-		if (ev.target.value) {
-			jq('#opt-spinner').show();
-			searchOptions(ev.target.value).then(result => {
-				jq('#opt-spinner').hide();
-				let html = '';
-				if (Array.isArray(result)) {
-					result.forEach(element => {
-						const selected = element.selected ? 'selected' : ''
-						html += `<option>${element.label}</option>`;
-					});
-					jq('#network-el').html(html);
-				}
-			}).catch(err => {
-				jq('#opt-spinner').hide();
-				toastMessage('warning', err);
-			});
-		}
-	});
 
 	async function searchOptions(keyword) {
 		return new Promise((resolve, reject) => {
